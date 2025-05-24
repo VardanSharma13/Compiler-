@@ -16,5 +16,6 @@ Dependencies: gcc, nasm
 
 ```
 ./build.sh
+{ agr permission denied aye: chmod +x build.sh }
 ./build/unn <filename> <output_filename>
 ```
