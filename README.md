@@ -14,7 +14,8 @@ Quick Start:
 
 Dependencies: gcc, nasm
 
-```
+{iske neeceh ka preview mai show hoga}----->
+```   
 ./build.sh
 { agr permission denied aye: chmod +x build.sh }
 ./build/unn <filename> <output_filename>
