@@ -25,5 +25,7 @@ Dependencies: gcc, nasm
     "iske baad" --->
     sudo apt update && sudo apt install -y nasm
 }
+ 
+./<output_filename>
 ```
 
