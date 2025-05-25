@@ -1,6 +1,7 @@
-write"Hello this is vardan";
-int i=5;
-while(i)
-{
-write(i);
+int i = 5;
+while(i neq 0){
+write(i , 2);
+i = i-1;
 }
+
+exit(0);
