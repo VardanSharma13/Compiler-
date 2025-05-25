@@ -1,0 +1,6 @@
+write"Hello this is vardan";
+int i=5;
+while(i)
+{
+write(i);
+}
