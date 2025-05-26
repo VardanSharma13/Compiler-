@@ -4,42 +4,44 @@ import os
 
 app = Flask(__name__)
 
-def run_binary():
-    # Run the generated binary and capture output reliably
-    process = subprocess.Popen(["./output"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    stdout, stderr = process.communicate()
+@app.route('/')
+def home():
+    return render_template('index.html', output='', code='')
 
-    output = stdout.strip()
-    if stderr:
-        output += "\n[stderr]\n" + stderr.strip()
-    return output
-
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    output = ""
-    code = ""
-
+@app.route('/compile', methods=['GET', 'POST'])
+def compile():
     if request.method == 'POST':
-        code = request.form['code']
-
-        # Save the input code
-        with open('temp_input.unn', 'w') as f:
-            f.write(code)
-
+        # Get code from form
+        code = request.form.get('code', '')
+        if not code:
+            return render_template('index.html', output='Error: No code provided.', code=code)
+        
+        # Save code to a temporary .unn file
+        temp_file = 'temp_input.unn'
         try:
-            # Step 1: Build your compiler
-            subprocess.run(["bash", "build.sh"], check=True)
-
-            # Step 2: Run the compiler on input file
-            subprocess.run(["./build/unn", "temp_input.unn", "output"], check=True)
-
-            # Step 3: Run the compiled binary and capture its output
-            output = run_binary()
-
-        except subprocess.CalledProcessError as e:
-            output = f"Error occurred:\n{e}"
-
-    return render_template('index.html', output=output, code=code)
+            with open(temp_file, 'w') as f:
+                f.write(code)
+            
+            # Run the compiler (assumes ./main is the compiled binary)
+            compile_result = subprocess.run(['./build/unn', temp_file , "output"], capture_output=True, text=True, timeout=10)
+            print(compile_result)
+            result = subprocess.run(['./output'], capture_output=True, text=True, timeout=10)
+            output = result.stdout or result.stderr or "No output produced."
+            print(result)
+        except subprocess.TimeoutExpired:
+            output = "Error: Compilation timed out."
+        except Exception as e:
+            output = f"Error: {str(e)}"
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+        
+        return render_template('index.html', output=output, code=code)
+    
+    # Handle GET requests to /compile (e.g., direct URL access)
+    return render_template('index.html', output='Please submit code using the form.', code='')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    print("Starting Flask server on http://localhost:5000")
+    app.run(debug=True, host='0.0.0.0', port=5000)

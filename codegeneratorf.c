@@ -365,11 +365,13 @@ void traverse_tree(Node *node, int is_left, FILE *file, int syscall_number){
       }
       push_var(*identifier, node->right->value, file);
       mov("rdi", "printf_format", file);
+    
       pop("rsi", file);
 
       fprintf(file, "  xor rax, rax\n");
-
+      
       fprintf(file, "  call printf WRT ..plt\n");
+      
       
     } else {
       identifier = node->left->value;
@@ -384,6 +386,9 @@ void traverse_tree(Node *node, int is_left, FILE *file, int syscall_number){
       text_label++;
       free(text);
       fprintf(file, "  syscall\n");
+      // 
+      // fprintf(file, "call exit\n");
+
     }
     Node *tmp = malloc(sizeof(Node));
     tmp = node->right->right;
@@ -417,7 +422,9 @@ void traverse_tree(Node *node, int is_left, FILE *file, int syscall_number){
        push_var(*var_value, node->value, file);
        pop("rdi", file);
        fprintf(file, "  mov rax, %d\n", syscall_number);
-       fprintf(file, "  syscall\n");
+      //  fprintf(file, "  syscall\n");
+      //  ****
+       fprintf(file, "call exit\n");
        syscall_number = 0;
     } else {
       if(hashmap_get(&hashmap, node->value, strlen(node->value)) == NULL){
@@ -493,7 +500,9 @@ void traverse_tree(Node *node, int is_left, FILE *file, int syscall_number){
     if(syscall_number == 60){
       fprintf(file, "  mov rax, %d\n", syscall_number);
       fprintf(file, "  pop rdi\n");
-      fprintf(file, "  syscall\n");
+      // fprintf(file, "  syscall\n");
+      // **
+      fprintf(file, "call exit\n");
       syscall_number = 0;
     }
   }
@@ -521,11 +530,17 @@ int generate_code(Node *root, char *filename){
   fprintf(file, "section .data\n");
   fprintf(file, "  printf_format: db '%s', 10, 0\n", "%d");
   fprintf(file, "extern printf\n");
+  // ***
+  fprintf(file, "extern exit\n");
+  // ** 
   fprintf(file, "global main\n");
   fprintf(file, "section .text\n");
   fprintf(file, "main:\n");
 
   traverse_tree(root, 0, file, 0);
+
+  // fprintf(file, "call exit\n");
+
   fclose(file);
 
 
