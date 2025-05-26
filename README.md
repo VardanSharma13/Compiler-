@@ -19,5 +19,10 @@ Dependencies: gcc, nasm
 }
  
 ./<output_filename>
+
+
+------------GUI-----------
+pip install flask
+
 ```
 

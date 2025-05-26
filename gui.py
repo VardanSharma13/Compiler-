@@ -1,51 +1,45 @@
-import tkinter as tk
-from tkinter import messagebox
+from flask import Flask, render_template, request
 import subprocess
 import os
 
-def run_pipeline():
-    # Get code from left editor
-    code = code_input.get("1.0", tk.END)
+app = Flask(__name__)
 
-    # Save to temp file
-    with open("temp_input.unn", "w") as f:
-        f.write(code)
+def run_binary():
+    # Run the generated binary and capture output reliably
+    process = subprocess.Popen(["./output"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    stdout, stderr = process.communicate()
 
-    try:
-        # Step 1: Compile the compiler (build.sh)
-        subprocess.run(["bash", "build.sh"], check=True)
+    output = stdout.strip()
+    if stderr:
+        output += "\n[stderr]\n" + stderr.strip()
+    return output
 
-        # Step 2: Run the compiler to generate output
-        subprocess.run(["./build/unn", "temp_input.unn", "output"], check=True)
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    output = ""
+    code = ""
 
-        # Step 3: Run the final output executable
-        result = subprocess.run(["./output"], capture_output=True, text=True)
+    if request.method == 'POST':
+        code = request.form['code']
 
-        # Display output
-        output_display.delete("1.0", tk.END)
-        output_display.insert(tk.END, result.stdout if result.stdout else "[No Output]")
-        if result.stderr:
-            output_display.insert(tk.END, "\n[Errors:]\n" + result.stderr)
+        # Save the input code
+        with open('temp_input.unn', 'w') as f:
+            f.write(code)
 
-    except subprocess.CalledProcessError as e:
-        output_display.delete("1.0", tk.END)
-        output_display.insert(tk.END, f"Error:\n{e}")
+        try:
+            # Step 1: Build your compiler
+            subprocess.run(["bash", "build.sh"], check=True)
 
-# --- GUI Setup ---
-root = tk.Tk()
-root.title("UNN Language IDE")
-root.geometry("1200x600")
+            # Step 2: Run the compiler on input file
+            subprocess.run(["./build/unn", "temp_input.unn", "output"], check=True)
 
-# Code Editor (Left)
-code_input = tk.Text(root, height=30, width=70, font=("Courier", 12))
-code_input.pack(side=tk.LEFT, padx=10, pady=10)
+            # Step 3: Run the compiled binary and capture its output
+            output = run_binary()
 
-# Output Viewer (Right)
-output_display = tk.Text(root, height=30, width=70, font=("Courier", 12), bg="#f0f0f0")
-output_display.pack(side=tk.RIGHT, padx=10, pady=10)
+        except subprocess.CalledProcessError as e:
+            output = f"Error occurred:\n{e}"
 
-# Run Button
-run_button = tk.Button(root, text="Compile & Run", font=("Arial", 14), command=run_pipeline)
-run_button.pack(pady=5)
+    return render_template('index.html', output=output, code=code)
 
-root.mainloop()
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
