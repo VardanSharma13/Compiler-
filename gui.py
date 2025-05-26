@@ -1,47 +1,51 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import messagebox
 import subprocess
 import os
 
-def run_compiler():
+def run_pipeline():
+    # Get code from left editor
     code = code_input.get("1.0", tk.END)
 
-    # Save to temp .unn file
+    # Save to temp file
     with open("temp_input.unn", "w") as f:
         f.write(code)
 
     try:
-        # Run your compiler build script
-        subprocess.run(["./build.sh"], check=True)
+        # Step 1: Compile the compiler (build.sh)
+        subprocess.run(["bash", "build.sh"], check=True)
 
-        # Read the output file (adjust as per your actual output)
-        if os.path.exists("output/output.txt"):
-            with open("output/output.txt", "r") as f:
-                result = f.read()
-        else:
-            result = "[No output file generated]"
+        # Step 2: Run the compiler to generate output
+        subprocess.run(["./build/unn", "temp_input.unn", "output"], check=True)
 
-    except subprocess.CalledProcessError:
-        result = "Compilation failed."
+        # Step 3: Run the final output executable
+        result = subprocess.run(["./output"], capture_output=True, text=True)
 
-    output_display.delete("1.0", tk.END)
-    output_display.insert(tk.END, result)
+        # Display output
+        output_display.delete("1.0", tk.END)
+        output_display.insert(tk.END, result.stdout if result.stdout else "[No Output]")
+        if result.stderr:
+            output_display.insert(tk.END, "\n[Errors:]\n" + result.stderr)
 
-# GUI Layout
+    except subprocess.CalledProcessError as e:
+        output_display.delete("1.0", tk.END)
+        output_display.insert(tk.END, f"Error:\n{e}")
+
+# --- GUI Setup ---
 root = tk.Tk()
-root.title("UNN Compiler GUI")
+root.title("UNN Language IDE")
+root.geometry("1200x600")
 
-# Code input pane
-code_input = tk.Text(root, height=30, width=60)
+# Code Editor (Left)
+code_input = tk.Text(root, height=30, width=70, font=("Courier", 12))
 code_input.pack(side=tk.LEFT, padx=10, pady=10)
 
-# Output display pane
-output_display = tk.Text(root, height=30, width=60, bg="#f0f0f0")
+# Output Viewer (Right)
+output_display = tk.Text(root, height=30, width=70, font=("Courier", 12), bg="#f0f0f0")
 output_display.pack(side=tk.RIGHT, padx=10, pady=10)
 
-# Compile button
-compile_button = tk.Button(root, text="Compile and Run", command=run_compiler)
-compile_button.pack(pady=5)
+# Run Button
+run_button = tk.Button(root, text="Compile & Run", font=("Arial", 14), command=run_pipeline)
+run_button.pack(pady=5)
 
 root.mainloop()
-
